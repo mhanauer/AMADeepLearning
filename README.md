@@ -1,70 +1,140 @@
-# TargetAutocontent
-
 ---
-title: "Target Autocontent"
-output:
-  pdf_document: default
-  html_document: default
+title: "AutoBarriersCode"
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-Library packages
+Here we are loading and cleaning the data.  I placed the hand coded responses along with the RBBCSC and MCCSC files in this folder.  The extra code was just to establish the interrater reliablity from another data set.
 ```{r}
-library(psych)
-library(prettyR)
+setwd("~/Desktop/QualPreAuto")
+# matt = data.frame(read.csv("HandCodesMattMolly.csv", header = TRUE))
+# head(matt)
+# matt = matt[c(3:4)]
+# head(matt)
+# library(psych)
+# cohen.kappa(matt)
 
 ```
-Load data
-We only want to get rid of data that was blank.  If they stated something was N/A, then we want to know that, because I think we can make the assumption that there is nothing related to that category.  For example, N/A for improve, means that they are not aware of anyways to improve.
+Agreement above chance.  Do not use weighted, but this assumes there is some order to the nomial values.  So we are penalized more when I answer 1 and she answers 6 even though 
+
+Now we are running the actual program.
 ```{r}
-setwd("P:/Evaluation/TN Lives Count_Writing/4_Target1_EnhancedCrisisFollow-up/3_Data & Data Analyses")
-TargetAdults = read.csv("Target1EnhancedPostAdult.csv", header = TRUE, na.strings = c(""))
-TargetYouth = read.csv("TargetYouth_clean.csv", header = TRUE, na.strings = c(""))
-```
-Just grab the variables that you want
-Adult = 1, Youth = 0
-```{r}
-TargetAdult_Auto = data.frame(Like_Best = TargetAdults$X5..Like.Best, How_Help = TargetAdults$X6..How.Help, Improve = TargetAdults$X7..Like.Least.Improve, Indicator = rep(1,dim(TargetAdults)[1]))
-
-dim(TargetYouth)
-names(TargetYouth)
-
-TargetYouth_auto = data.frame(Like_Best = TargetYouth$X5..Like.Best, How_Help = TargetYouth$X6..How.Help, Improve = TargetYouth$X7..Life.Least, Indicator = rep(0,dim(TargetYouth)[1]))
-
-TargetAdultYouth_Auto = rbind(TargetAdult_Auto, TargetYouth_auto)
-dim(TargetAdultYouth_Auto)
-
-TargetAdultYouth_Auto = na.omit(TargetAdultYouth_Auto)
-dim(TargetAdultYouth_Auto)
-
-write.csv(TargetAdultYouth_Auto, "TargetAdultYouth_Auto.csv", row.names = FALSE)
+library(devtools)
+#install_github("iqss-research/VA-package")
+#install_github("iqss-research/ReadMeV1")
+library(ReadMe)
 
 ```
-So we want to sample about 20% of the data, but need to have an indicator of that sample
-Could do a stratified random sample stratified on youth or adult makeing sure we get 10% of youth and 10% of adults
-
-This looks good.
+Here we are cleaning the data.  Just grabbing the data and barriers question to SEL for both school districts and getting rid of the NA's.
 ```{r}
-library(caret)
-set.seed(12345)
-inTrain = createDataPartition(y = TargetAdultYouth_Auto$Indicator, p = .20, list = FALSE)
-training = TargetAdultYouth_Auto[inTrain,]
-testing = TargetAdultYouth_Auto[-inTrain,]
-head(testing)
-dim(training)
-dim(testing)
+# rbbcsc = read.csv("RBBCSCStaffSurvey.csv", header = TRUE)
+# rbbcsc = as.data.frame(rbbcsc)
+# mccsc = read.csv("MCCSCStaffSurvey.csv", header = TRUE)
 
-mean(testing$Indicator)
-mean(training$Indicator)
+mccsc2 = mccsc[c("Q3")]
+mccsc2 = mccsc2[-c(1:2), ]
+mccsc2 = as.matrix(mccsc2)
 
-write.csv(training, "training.csv", row.names = FALSE)
 
+rbbcsc1 = rbbcsc[c("Q3")]
+rbbcsc2 = rbbcsc1[-c(1:2), ]
+rbbcsc2 = as.matrix(rbbcsc2)
+
+
+both = rbind(mccsc2, rbbcsc2)
+dim(both)
+
+both = rbind(mccsc2, rbbcsc2)
+write.csv(both, "both.csv")
+both = read.csv("both.csv", header= TRUE, na.strings = c("", "NA"))
+both = na.omit(both)
+id = 1:nrow(both)
+both = cbind(id, both)
+both = both[c(1,3)]
+write.csv(both, "both.csv", row.names = FALSE)
+head(both)
+dim(both)
 ```
+Now we need to place each of the responses into their own txt file.  Need to change the working directory to QualAuto to place the new documents into the new folder then you need to also include the both csv file so it can grab each text value and place it into its own txt file.   
+```{r}
+library(devtools)
+source_url("https://gist.github.com/benmarwick/9266072/raw/csv2txts.R")
+
+csv2txt("~/Desktop/QualPreAuto", labels = 1)
+```
+Now we are creating the control.txt file, because you already created the txt file with the responses.  Just creating the filename here.  Just creating a vector with 1:401.
+```{r}
+set.seed(1)
+both1 <- replicate(401, rnorm(1, 0, 1))  
+both1 = as.data.frame(t(both1))
+dim(both1)
+
+
+names(both1) <- paste0( "~/Desktop/QualPreAuto/",1:ncol(both1), ".txt")
+library(reshape2)
+both1 = melt(both1)
+both1 = both1$variable
+both1 = as.data.frame(both1)
+colnames(both1) = c("filename")
+filename = both1$filename
+filename = as.data.frame(filename)
+dim(filename)
+```
+Now we need to create the training and truth data sets.  We are grabbing matt's codes from the matt data set and that will be the "truth" data set.  Then we will stack on the "" for the rest of the values
+
+Grabbing my codes for truth, which are the 1 through 7 values.  Then lining those up with the same text values as in the other data.  So my id 1 for my code needs to match the id 1 for the both data set.  Then creating 1 for stating that this in the truth data set and a 0 if it is not and we need a code.
+```{r}
+# setwd("~/Desktop/QualPreAuto")
+#matt = read.csv("HandCodesMattMolly.csv", header = TRUE)
+# setwd("~/Desktop/QualAuto")
+truth = matt[c(3)]
+names(truth) = c("truth")
+truth = as.data.frame(truth)
+dim(truth)
+truth1 = data.frame(a = rep("", 401-101))
+names(truth1) = c("truth")
+truth1 = as.data.frame(truth1)
+truth = rbind(truth, truth1)
+dim(truth)
+# Now we are creating the codes to indicate the training set
+trainingset1 = data.frame(a = rep(1,100))
+trainingset1 = as.data.frame(trainingset1)
+trainingset2 = data.frame(a = rep(0, 401-100))
+trainingset2 = as.data.frame(trainingset2)
+trainingset = rbind(trainingset1, trainingset2)
+names(trainingset) = c("trainingset")
+dim(trainingset)
+dim(filename)
+dim(truth)
+control = cbind(filename, truth, trainingset)
+write.table(control, "control.txt", row.names = FALSE, sep = ",")
+```
+Now we run the program.  Before you run the program, you need to get rid of the "" everywhere.
+Below doesn't work: 
+/Users/matthewhanauer/Desktop/QualPreAuto/
+Users/matthewhanauer/Desktop/QualPreAuto/
+/Users/matthewhanauer/Desktop/QualPreAuto
+~/Desktop/QualPreAuto/
 
 
 
 
-
-
+```{r}
+undergrad.results = undergrad(sep = ',')
+undergrad.preprocess <- preprocess(undergrad.results)
+readme.results <- readme(undergrad.preprocess, boot.se = TRUE)
+readme.results$CSMF.se
+readme.results$est.CSMF
+testReadme = readme.results$subsets.est
+write.csv(testReadme, "testReadme.csv", row.names = FALSE)
+```
+Must be done outside of Rmarkdown
+```{r}
+setwd(system.file("demofiles/clintonposts", package="ReadMe"))
+undergrad.results <- undergrad(sep = ",")
+undergrad.preprocess <- preprocess(undergrad.results)
+readme.results <- readme(undergrad.preprocess)
+readme.results$true.CSMF
+```
