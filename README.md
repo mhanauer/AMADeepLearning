@@ -63,10 +63,6 @@ Ok now take a random sample of 15%
 Need to give the filenames for all the data
 ```{r}
 set.seed(12345)
-### What if the problem is that we have some goofy
-both = both[1:100,]
-
-
 inTrain = createDataPartition(y = both$id, p = .20, list = FALSE)
 training = both[inTrain,]
 testing = both[-inTrain,]
@@ -83,7 +79,9 @@ Put the both_like data set into the folder so the function can pull everything
 ```{r}
 library(devtools)
 source_url("https://gist.github.com/benmarwick/9266072/raw/csv2txts.R")
-csv2txt("P:/Evaluation/TN Lives Count_Writing/4_Target1_EnhancedCrisisFollow-up/3_Data & Data Analyses/AutoContent/", labels = 1)
+csv2txt("C:/Users/Matthew.Hanauer/Desktop/AutoContent", labels = 1)
+
+#csv2txt("P:/Evaluation/TN Lives Count_Writing/4_Target1_EnhancedCrisisFollow-up/3_Data & Data Analyses/AutoContent/", labels = 1)
 ```
 ############### 
 Like Analysis
@@ -94,7 +92,7 @@ You need to create a data that has the path the text file so readme can read it.
 ```{r}
 like_filename = data.frame(t(replicate(length(both_like$id), rnorm(1, 0, 1))))
 
-names(like_filename) <- paste0( "P:/Evaluation/TN Lives Count_Writing/4_Target1_EnhancedCrisisFollow-up/3_Data & Data Analyses/AutoContent/",1:ncol(like_filename), ".txt")
+names(like_filename) <- paste0( "C:/Users/Matthew.Hanauer/Desktop/AutoContent/",1:ncol(like_filename), ".txt")
 
 library(reshape2)
 like_filename = melt(like_filename)
@@ -131,7 +129,7 @@ write.table(control, "control.txt", row.names = FALSE, sep = ",")
 Ok now try the analysis
 ```{r}
 #setwd("P:/Evaluation/TN Lives Count_Writing/4_Target1_EnhancedCrisisFollow-up/3_Data & Data Analyses")
-undergrad.results = undergrad(sep = ",", python3 = TRUE)
+undergrad.results = undergrad(sep = ",")
 ```
 
 
